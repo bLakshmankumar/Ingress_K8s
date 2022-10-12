@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <anyname>(path_base_rt)
+  namespace: <nsname>(if you have any ns for this application/service please provide that ns name here)
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <domain>(host1.com)
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>" (/images)
+        backend:
+          service:
+            name: <serviceName>(service name should match to host1 application service)(ex-host1svc)
+            port:
+             number: <servicePort>(80)
+      - pathType: Prefix
+        path: "/<path>"(/Documents)
+        backend:
+          service:
+            name: <servcieName>(provide the svc name of this application)
+            port:
+              number: <servicePort>(80)
+
+> kubectl apply -f ingress_pathbased.yml
+> we have to map our dns with R53 for that we need to create a record. 
+>kubectl get ingress 

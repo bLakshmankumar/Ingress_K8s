@@ -1,0 +1,34 @@
+> We can configure our ssl certificates with ingress if we wanna Https secured communication we can configure ssl certificates in k8s ingress layer.
+>  we create a certificates and convert as a secret.
+> How can we configure that certificates in ingress.
+> 
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mithuntechappingressrule
+  namespace: test-ns
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+      - host1.com ( for this i created a certificates for this host, so that i define my host name here)
+    secretName: mithun-ingress-tls  (we define our certificate secret name where we have a serets).
+  rules:
+  - host: mithuntechdevops.co.in
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/java-web-app"
+        backend:
+          service:
+            name: javawebappsvc
+            port:
+              number: 80
+      - pathType: Prefix
+        path: "/maven-web-application"
+        backend:
+          service:
+            name: mavenwebappsvc
+            port:
+              number: 80

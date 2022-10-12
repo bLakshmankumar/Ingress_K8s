@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <name>
+  namespace: <namespace>
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: host1.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>"
+        backend:
+          service:
+            name: <serviceName> (svc name should match the svc which we created before)
+            port:
+              number: <servicePort>(80)
+  - host: host2.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>"
+        backend:
+          service:
+            name: <serviceName> (we have to select a proper service name( which we was created for that application) (kubectl get svc)
+            port:
+              number: <servicePort> (80)	
+> kubectl get ingress -: for check the ingress rule object
+> kubectl apply -f ingressRules.yml
