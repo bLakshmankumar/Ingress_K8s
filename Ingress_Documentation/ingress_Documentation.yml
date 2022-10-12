@@ -1,0 +1,602 @@
+Ingress 
+-----------
+> For Ex we have different applications with seperate service Loadbalancer with different Ports.
+
+> So for each service we will get a different Loadbalancer with different ip.
+
+> So my requirement is i dont wanna maintain multiple loadbalancers for each service, i don't wanna maintain the external ips.
+
+> All my requests are go to one loadbalancer to route my traffic to mutliple services running in my k8s Cluster.
+
+> That's the situation come into picture, we have ingress with ingressContoller and ingress Resources.
+
+> By using single external loadbalancer all the external traffic should be comming via single loadbalancer, and with in a k8s cluster we can able to route the traffic.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+> Architecture of ingress -:
+------------------------------
+ > When any one send a requests to the external applications 
+ > That requestcomes to external Loadbalancer > That external Loadbalancer route the traffic to Ingress(ingress controller or ingress resource) >  This ingress controll will route the traffic to different different services based on the routing rules.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Ingress -:
+---------------
+ > With in a k8s cluster we have an ingress/we set an ingress with in a k8s cluster.
+ > k8s ingress is a resource to add rules for routing traffic from external sources to the services in the k8s Cluster.
+ > It's an internal Layer 7 LoadBalancer.
+
+> k8s Ingress -:
+-----------------
+ > k8s ingress is a native k8s resource where we can have rules to route traffic from an external source to service endpoints residing inside the cluster.
+ > It requires an ingress controller for routing the rules specified in the ingress object.
+ > By using ingress we can get a routing control of our k8s cluster using the routing rules.
+ > By using ingress rules we can define which applications to route the traffic.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Ingress Components -:
+-----------------------------
+> Ingress has two components    1) Ingress Resources      2) Ingress Controller
+
+> 1) ingress Resource -:
+-------------------------------
+     > It's a k8s object where we can define the rules to route the traffic from external sources to the services with in k8s cluster.
+	 > Here We can define the rules.
+
+> But who will read this rules and who will accept and forward the traffic to Application based on this rules ? -> Ingress Controller
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+> Ingress Controller -:
+---------------------------
+> Basically K8s ingress Controller is a one application like proxy-service(like web-server com loadbalancer software). we deployed this application in k8s cluster.
+> This ingress controller will read the rules in the resources and forward the requests based on the rules.
+> IngressController is typically is a proxy-service deployed in the cluster. it's nothing but a k8s Deployment exposed to a service.
+> This ingress Controller will listen the rules and forward the traffic.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\
+
+> We have different ways to impliment this ingress concepts -:
+--------------------------------------------------------------------------------
+ > we have lot of ingress contollers are available. like 
+ > We have  1) nginx  2) HAProxy 3) Traefik 4) Contour 5) Istio These are ingress contollers available.
+ > We can deploy whatever ingressContoller we want that's one application/Software/One docker image which we  can deploy.
+ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Simply -:
+ -----------
+ > The Ingress is a Kubernetes resource that lets you configure an HTTP load balancer for applications running on Kubernetes, represented by one or more Services. 
+ > Such a load balancer is necessary to deliver those applications to clients outside of the Kubernetes cluster.
+
+ > The Ingress resource supports the following features:
+---------------------------------------------------------------------
+> Content-based routing:
+> Host-based routing. For example, routing requests with the host header foo.example.com to one group of services and the host header bar.example.com to another group.
+> Path-based routing. For example, routing requests with the URI that starts with /serviceA to service A and requests with the URI that starts with /serviceB to service B.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> Here we don't need a service type loadbalancers we just need a ingressController loadbalancer. you can delete the previous LoadBalancers. if you wanna use ingress.
+> we create an ingresController LoadBalancers for ingress pods and ingress pods will route the traffic to service based on ingress resource rules.
+> Ingress pod is ntg but an ingressContoller. and this ingress controller pods will read the ingress resource rules and send the request to the service > service will forward the request to pods.
+> When client sends a request  > That request comes to external Loadbalancer > then it comes to ingress pods( ingress pod will verify the rules) > Then it'll route the traffic to relevent service.
+ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+> Installing the Ingress Controller-:
+--------------------------------------------
+> Prerequisites -:
+----------------------
+1) You must have an Ingress controller to satisfy an Ingress. Only creating an Ingress resource has no effect.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> kubetcl get svc -: we can check the services if you have any loadbalancer services please be delete the service.
+> kubectl delete svc loadbalancer svcname -: it'll delete the loadbalancer service. you can go and check the in ec2 under loadbalancers it's deleted.
+> Now we can change that previous deleted loadbalancers to Clusterip 
+> Go to that previous Deleted loadbalancers Service manifest and replace to ClusterIp.
+> kubetcl apply -f changedmanifest file. -: no it's in cluster ip so how can we access from outside now.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> For that now we need to create a ingress pods.
+> We can create an ingress pods using Deployment or instead of Deployment we can deploy as a Deamonset with that image.
+> we have to create Service account and we create a roles for ingress bcs that ingresController has to talk to API's, and it should access to the services  Details and also it should access to the config maps and ingress rules.
+> we have to give all the required permissions. and we associate with eaither Deployment/Deamonset.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> -----------------------------------
+Default-serever-secret.yaml
+-----------------------------------
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: default-server-secret
+  namespace: nginx-ingress
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN2akNDQWFZQ0NRREFPRjl0THNhWFhEQU5CZ2txaGtpRzl3MEJBUXNGQURBaE1SOHdIUVlEVlFRRERCWk8KUjBsT1dFbHVaM0psYzNORGIyNTBjbTlzYkdWeU1CNFhEVEsrTzhibWVPc3lySmdJSXJycVFVY2ZOUitjb0hZVUoKdGhrYnhITFMzR3VBTWI5dm15VExPY2xxeC9aYzJPblEwMEJCLzlTb0swcitFZ1U2UlVrRWtWcitTTFA3NTdUWgozZWI4dmdPdEduMS9ienM3bzNBaS9kclkrcUI5Q2k1S3lPc3FHTG1US2xFaUtOYkcyR1ZyTWxjS0ZYQU80YTY3Cklnc1hzYktNbTQwV1U3cG9mcGltU1ZmaXFSdkV5YmN3N0NYODF6cFErUyt1eHRYK2VBZ3V0NHh3VlI5d2IyVXYKelhuZk9HbWhWNThDd1dIQnNKa0kxNXhaa2VUWXdSN0diaEFMSkZUUkk3dkhvQXprTWIzbjAxQjQyWjNrN3RXNQpJUDFmTlpIOFUvOWxiUHNoT21FRFZkdjF5ZytVRVJxbStGSis2R0oxeFJGcGZnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN2akNDQWhffhfshjksdhjkhdscsdfuhwofdkaojamdpoewd adpodadkpkadopkdackdaopcdcdjdOHODHONIOJONInOnOHnOHJonoNoihn451564fhdfjdkfifjndfijeiOKPJOJOJisjdsj
+-----------------------------------------------------------------------------------------------------------------------
+> nginx-Config.yaml
+------------------------
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: nginx.org/ingress-controller
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-config
+  namespace: nginx-ingress
+data:
+  proxy-protocol: "True"
+  real-ip-header: "proxy_protocol"
+  set-real-ip-from: "0.0.0.0/0"
+-----------------------------------------------
+> ns-sa.yml
+---------------
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx-ingress 
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-ingress 
+  namespace: nginx-ingress
+----------------------------------------------------- 
+
+> Service account and Role (RBAC) -:
+-----------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nginx-ingress
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - list
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - watch
+  - get
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses/status
+  verbs:
+  - update
+- apiGroups:
+  - k8s.nginx.org
+  resources:
+  - virtualservers
+  - virtualserverroutes
+  - globalconfigurations
+  - transportservers
+  - policies
+  verbs:
+  - list
+  - watch
+  - get
+- apiGroups:
+  - k8s.nginx.org
+  resources:
+  - virtualservers/status
+  - virtualserverroutes/status
+  - policies/status
+  - transportservers/status
+  - dnsendpoints/status
+  verbs:
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+- apiGroups:
+    - cis.f5.com
+  resources:
+    - ingresslinks
+  verbs:
+    - list
+    - watch
+    - get
+- apiGroups:
+    - cert-manager.io
+  resources:
+    - certificates
+  verbs:
+    - list
+    - watch
+    - get
+    - update
+    - create
+    - delete
+- apiGroups:
+    - externaldns.nginx.org
+  resources:
+    - dnsendpoints
+  verbs:
+    - list
+    - watch
+    - get
+    - update
+    - create
+    - delete
+- apiGroups:
+  - externaldns.nginx.org
+  resources:
+  - dnsendpoints/status
+  verbs:
+  - update
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nginx-ingress
+subjects:
+- kind: ServiceAccount
+  name: nginx-ingress
+  namespace: nginx-ingress
+roleRef:
+  kind: ClusterRole
+  name: nginx-ingress
+  apiGroup: rbac.authorization.k8s.io
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+> nginx-ingress-deployment.yml
+----------------------------------------------------------------------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+     #annotations:
+       #prometheus.io/scrape: "true"
+       #prometheus.io/port: "9113"
+       #prometheus.io/scheme: http
+    spec:
+      serviceAccountName: nginx-ingress
+      containers:
+      - image: nginx/nginx-ingress:2.2.2
+        imagePullPolicy: IfNotPresent
+        name: nginx-ingress
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: readiness-port
+          containerPort: 8081
+        - name: prometheus
+          containerPort: 9113
+        readinessProbe:
+          httpGet:
+            path: /nginx-ready
+            port: readiness-port
+          periodSeconds: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+         #limits:
+         #  cpu: "1"
+         #  memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 101 #nginx
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        args:
+          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
+          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+          - -enable-custom-resources=false
+         #- -enable-cert-manager
+         #- -enable-external-dns
+         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
+         #- -report-ingress-status
+         #- -external-service=nginx-ingress
+         #- -enable-prometheus-metrics
+         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> deamonset/inginix_ingress.yml
+-----------------------------------------
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+     #annotations:
+       #prometheus.io/scrape: "true"
+       #prometheus.io/port: "9113"
+       #prometheus.io/scheme: http
+    spec:
+      serviceAccountName: nginx-ingress
+      containers:
+      - image: nginx/nginx-ingress:2.2.2
+        imagePullPolicy: IfNotPresent
+        name: nginx-ingress
+        ports:
+        - name: http
+          containerPort: 80
+          hostPort: 80
+        - name: https
+          containerPort: 443
+          hostPort: 443
+        - name: readiness-port
+          containerPort: 8081
+        - name: prometheus
+          containerPort: 9113
+        readinessProbe:
+         httpGet:
+           path: /nginx-ready
+           port: readiness-port
+         periodSeconds: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+         #limits:
+         #  cpu: "1"
+         #  memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 101 #nginx
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        args:
+          - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
+          - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+          - -enable-custom-resources=false
+         #- -v=3 # Enables extensive logging. Useful for troubleshooting.
+         #- -report-ingress-status
+         #- -external-service=nginx-ingress
+         #- -enable-prometheus-metrics
+         #- -global-configuration=$(POD_NAMESPACE)/nginx-configuration
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> cd That ingress Folder 
+> Create a Namespace and service account with that NA-SA.yaml > kubectl apply -f NA-SA.yml
+> Create RBAC, Default Secret and Config Map > kubectl apply -f Server_secret.yml and RBAC.yml and nginx_config.yml.
+> Deploy ingress controller using deployment/Deamonset file. > kubectl apply -f deamonset/inginix_ingress.yml
+
+> We include two options for deploying the Ingress controller:
+
+ > Deployment. Use a Deployment if you plan to dynamically change the number of Ingress controller replicas.
+ > DaemonSet. Use a DaemonSet for deploying the Ingress controller on every node or a subset of nodes.
+
+>> Create a DaemonSet -:
+------------------------------
+ > When you run the Ingress Controller by using a DaemonSet, Kubernetes will create an Ingress controller pod on every node of the cluster.
+ 
+ > kubectl apply -f daemon-set-nginx-ingress.yaml.
+ 
+ >> Check that the Ingress Controller is Running -:
+ -------------------------------------------------------------
+  > kubectl get all --namespace=nginx-ingress
+ > kubectl get pods --namespace=nginx-ingress
+ 
+ >> Get Access to the Ingress Controller -:
+-----------------------------------------------------
+> If you created a daemonset, ports 80 and 443 of the Ingress controller container are mapped to the same ports of the node where the container is running.
+> To access the Ingress controller, use those ports and an IP address of any node of the cluster where the Ingress controller is running.
+
+>> Service with the Type LoadBalancer -:
+------------------------------------------------------
+> Create a service with the type LoadBalancer. Kubernetes will allocate and configure a cloud load balancer for load balancing the Ingress controller pods.
+> kubectl apply -f service/loadbalancer-aws-elb.yaml. > we are creating LoadBalancer Service.
+
+> To get the DNS name of the ELB, run -:
+--------------------------------------------------
+> $ kubectl describe svc nginx-ingress --namespace=nginx-ingress 
+> Now we have a loadbalancer and we get an external LoadBalancer this loadbalancer DNS name we need to map with R53.
+
+> Now we define the Rules inside ingress resources -:
+--------------------------------------------------------------------
+> Define path based or host based routing rules for your services.
+
+> Single DNS Sample with host and servcie place holders -:
+--------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress_resource-1
+  namespace: nginx-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <domainName>(host.com)
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>"
+        backend:
+          service:
+            name: <serviceName>
+            port:
+              number: <servicePort>
+-------------------------------------------------------------------------------
+> Multiple DNS Sample with hosts and servcies place holders -:
+-------------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <name>
+  namespace: <namespace>
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: host1.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>"
+        backend:
+          service:
+            name: <serviceName> (svc name should match the svc which we created before)
+            port:
+              number: <servicePort>(80)
+  - host: host2.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>"
+        backend:
+          service:
+            name: <serviceName> (we have to select a proper service name( which we was created for that application) (kubectl get svc)
+            port:
+              number: <servicePort> (80)	
+> kubectl get ingress -: for check the ingress rule object
+> kubectl apply -f ingressRules.yml
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+> Path Based Routing Example -: (host.com/path)
+------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <name>
+  namespace: <nsname>
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <domain>(host1.com)
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<Path>" (/images)
+        backend:
+          service:
+            name: <serviceName>(service name should match to host1 application service)(ex-host1svc)
+            port:
+             number: <servicePort>(80)
+      - pathType: Prefix
+        path: "/<path>"(/Documents)
+        backend:
+          service:
+            name: <servcieName>(provide the svc name of this application)
+            port:
+              number: <servicePort>(80)
+
+> kubectl apply -f ingress_pathbased.yml
+> we have to map our dns with R53 for that we need to create a record. 
+>kubectl get ingress 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+> We can configure our ssl certificates with ingress if we wanna Https secured communication we can configure ssl certificates in k8s ingress layer.
+> we create a certificates then we convert certificates as a secret using > kubectl create secret command. then we need to configure that secret with ingress.
+> How can we configure that certificates in ingress.
+> 
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <name>(anything)
+  namespace: test-ns(provide namespace where your application was deployed)
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+      - host1.com ( for this i created a certificates for this host, so that i define my host name here)
+    secretName: host1-ingress-tls  (we define our certificate secret name where we have a serets).
+  rules:
+  - host: host1.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/java-web-photos"
+        backend:
+          service:
+            name: javawebappsvc
+            port:
+              number: 80
+      - pathType: Prefix
+        path: "/maven-web-app-doc"
+        backend:
+          service:
+            name: mavenwebappsvc
+            port:
+              number: 80
