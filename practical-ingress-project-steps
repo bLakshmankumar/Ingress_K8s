@@ -1,0 +1,36 @@
+# Step - 1 -:
+=============
+# First we need to install ingress-controller on default namespace {using helm or manually}
+# nginx-stable	https://helm.nginx.com/stable  {Using helm}.
+# helm list command to verify
+
+# Step -2 -:
+# ----------
+# Create an ingress file on terminal 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: elk-ingress
+#   annotations:
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+# spec:
+#  ingressClassName: nginx
+#  rules:
+#  - host: a52cb6ee5124b4a7694aa5b46a22311a-175310273.us-west-2.elb.amazonaws.com
+#    http:
+#      paths:
+#        - path: /
+#          pathType: Prefix
+#          backend:
+#            service:
+#             name: elasticsearch-master
+#              port:
+#                number: 9200
+
+# Note -:
+# =======
+# we should provide ingressClassName 
+# we should provide that above annotation as well
+# - host -: provide you host site
+# service -: provide you application service name {ex i deploy elastic search on test namesapce , kubectl get svc -n test} we get the service name provide that svc name here}
+# port num -: provide on which port your application is running under service section you can able to see the port of your application you can provide that here.
