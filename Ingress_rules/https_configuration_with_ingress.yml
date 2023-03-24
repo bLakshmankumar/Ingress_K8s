@@ -6,16 +6,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: mithuntechappingressrule
+  name: httpsingressrules
   namespace: test-ns
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
       - host1.com ( for this i created a certificates for this host, so that i define my host name here)
-    secretName: mithun-ingress-tls  (we define our certificate secret name where we have a serets).
+    secretName: secret-ingress-tls  (we define our certificate secret name where we have a serets).
   rules:
-  - host: mithuntechdevops.co.in
+  - host: hostname.co.in
     http:
       paths:
       - pathType: Prefix
